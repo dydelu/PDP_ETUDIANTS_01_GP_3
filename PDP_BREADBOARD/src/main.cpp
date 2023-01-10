@@ -11,6 +11,11 @@
 // #define DHTTYPE    DHT11     // DHT 11
 #define DHTTYPE DHT11
 
+#define uS_TO_S_FACTOR 1000000ULL /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP 5
+
+RTC_DATA_ATTR int bootCount = 0;
+
 // See guide for details on sensor wiring and usage:
 //   https://learn.adafruit.com/dht/overview
 
@@ -23,7 +28,13 @@ void setup()
   Serial.begin(9600);
   // Initialize device.
   dht.begin();
-  Serial.println(F("DHTxx Unified Sensor Example"));
+  ++bootCount;
+  Serial.println("Boot number: " + String(bootCount));
+
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  Serial.println("Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) +
+                 " Seconds");
+
   // Print temperature sensor details.
   sensor_t sensor;
   dht.temperature().getSensor(&sensor);
@@ -66,11 +77,7 @@ void setup()
   Serial.println(F("------------------------------------"));
   // Set delay between sensor readings based on sensor details.
   delayMS = sensor.min_delay / 1000;
-}
 
-void loop()
-{
-  // Delay between measurements.
   delay(delayMS);
   // Get temperature event and print its value.
   sensors_event_t event;
@@ -97,4 +104,14 @@ void loop()
     Serial.print(event.relative_humidity);
     Serial.println(F("%"));
   }
+
+  Serial.println("Going to sleep now");
+  Serial.flush();
+  esp_deep_sleep_start();
+  Serial.println("This will never be printed");
+}
+
+void loop()
+{
+  // Delay between measurements.
 }
